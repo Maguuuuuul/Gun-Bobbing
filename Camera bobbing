@@ -1,0 +1,74 @@
+using UnityEngine;
+
+public class CameraBobbing : MonoBehaviour
+{
+    [Header("Bobbing Settings")]
+    public float bobbingSpeed = 0.18f;
+    public float bobbingAmount = 0.2f;
+    public float sprintBobbingMultiplier = 1.5f;
+
+    [Header("Sprint Settings")]
+    public KeyCode sprintKey = KeyCode.LeftShift;
+    public float sprintFOV = 70f;
+    public float normalFOV = 60f;
+    public float fovTransitionSpeed = 2f;
+
+    private float defaultPosY;
+    private float timer = 0.0f;
+    private float currentBobbingSpeed;
+    private float currentFOV;
+    private bool isSprinting = false;
+    private Camera camera;
+
+    void Start()
+    {
+        camera = GetComponent<Camera>();
+        if (camera == null)
+        {
+            Debug.LogError("CameraBobbing script needs to be attached to a GameObject with a Camera component.");
+            enabled = false;
+            return;
+        }
+
+        defaultPosY = transform.localPosition.y;
+        currentBobbingSpeed = bobbingSpeed;
+        currentFOV = normalFOV;
+        camera.fieldOfView = currentFOV;
+    }
+
+    void Update()
+    {
+        // Handle sprinting
+        isSprinting = Input.GetKey(sprintKey);
+        currentBobbingSpeed = isSprinting ? bobbingSpeed * sprintBobbingMultiplier : bobbingSpeed;
+        currentFOV = isSprinting ? sprintFOV : normalFOV;
+
+        // Smoothly transition the FOV
+        camera.fieldOfView = Mathf.Lerp(camera.fieldOfView, currentFOV, Time.deltaTime * fovTransitionSpeed);
+
+        // Camera bobbing effect
+        float waveslice = Mathf.Sin(timer);
+        if (Mathf.Abs(waveslice) > 0)
+        {
+            float translateChange = waveslice * bobbingAmount;
+            float totalAxes = Mathf.Abs(Input.GetAxis("Horizontal")) + Mathf.Abs(Input.GetAxis("Vertical"));
+            totalAxes = Mathf.Clamp(totalAxes, 0.0f, 1.0f);
+            translateChange *= totalAxes;
+            Vector3 localPos = transform.localPosition;
+            localPos.y = defaultPosY + translateChange;
+            transform.localPosition = localPos;
+        }
+        else
+        {
+            Vector3 localPos = transform.localPosition;
+            localPos.y = defaultPosY;
+            transform.localPosition = localPos;
+        }
+
+        timer += currentBobbingSpeed * Time.deltaTime;
+        if (timer > Mathf.PI * 2)
+        {
+            timer -= Mathf.PI * 2;
+        }
+    }
+}
