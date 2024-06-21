@@ -1,0 +1,97 @@
+using UnityEngine;
+
+public class GunMovement : MonoBehaviour
+{
+    [Header("General Settings")]
+    public float bobSpeed = 5f;
+    public float bobAmount = 0.1f;
+
+    [Header("Leaning Settings")]
+    public float leanAmount = 5f;
+    public float leanSpeed = 2f;
+
+    [Header("Sprinting Settings")]
+    public float sprintBobSpeed = 10f;
+    public float sprintBobAmount = 0.2f;
+    public float sprintLeanSpeed = 4f;
+    public Vector3 sprintPosition = new Vector3(0, -0.2f, 0);
+    public Vector3 sprintRotation = new Vector3(10, 0, 0);
+    public float sprintTransitionSpeed = 5f;
+
+    private Vector3 initialPosition;
+    private Quaternion initialRotation;
+
+    private bool isSprinting = false;
+
+    void Start()
+    {
+        initialPosition = transform.localPosition;
+        initialRotation = transform.localRotation;
+    }
+
+    void Update()
+    {
+        HandleMovement();
+    }
+
+    void HandleMovement()
+    {
+        float horizontal = Input.GetAxis("Horizontal");
+        float vertical = Input.GetAxis("Vertical");
+
+        if (Input.GetKey(KeyCode.LeftShift) && (horizontal != 0 || vertical != 0))
+        {
+            isSprinting = true;
+        }
+        else
+        {
+            isSprinting = false;
+        }
+
+        if (isSprinting)
+        {
+            // Sprinting pose
+            transform.localPosition = Vector3.Lerp(transform.localPosition, initialPosition + sprintPosition, Time.deltaTime * sprintTransitionSpeed);
+            transform.localRotation = Quaternion.Lerp(transform.localRotation, initialRotation * Quaternion.Euler(sprintRotation), Time.deltaTime * sprintTransitionSpeed);
+        }
+        else
+        {
+            float speed = bobSpeed;
+            float amount = bobAmount;
+
+            if (horizontal != 0 || vertical != 0)
+            {
+                if (isSprinting)
+                {
+                    speed = sprintBobSpeed;
+                    amount = sprintBobAmount;
+                }
+
+                float bobbing = Mathf.Sin(Time.time * speed) * amount;
+                float sideBobbing = Mathf.Sin(Time.time * speed * 0.5f) * amount * 0.5f;
+
+                transform.localPosition = initialPosition + new Vector3(horizontal * sideBobbing, bobbing, 0);
+
+                if (horizontal > 0)
+                {
+                    // Leaning right
+                    transform.localRotation = Quaternion.Euler(initialRotation.eulerAngles + new Vector3(0, 0, -leanAmount * horizontal));
+                }
+                else if (horizontal < 0)
+                {
+                    // Leaning left
+                    transform.localRotation = Quaternion.Euler(initialRotation.eulerAngles + new Vector3(0, 0, leanAmount * -horizontal));
+                }
+                else
+                {
+                    transform.localRotation = initialRotation;
+                }
+            }
+            else
+            {
+                transform.localPosition = initialPosition;
+                transform.localRotation = initialRotation;
+            }
+        }
+    }
+}
